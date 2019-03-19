@@ -1,2 +1,2 @@
-# Mesh Truth server
+# MeshManager server
 REST API to serve and store meshes
