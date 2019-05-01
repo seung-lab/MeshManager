@@ -1,5 +1,5 @@
 from werkzeug.serving import WSGIRequestHandler
-from meshmanager import create_app
+from webservices import create_app
 import os
 
 HOME = os.path.expanduser("~")
@@ -11,7 +11,6 @@ if __name__ == '__main__':
     WSGIRequestHandler.protocol_version = "HTTP/1.1"
 
     application.run(host='0.0.0.0',
-                    port=4001,
+                    port=5000,
                     debug=True,
-                    threaded=True,
-                    ssl_context='adhoc')
+                    threaded=True)
