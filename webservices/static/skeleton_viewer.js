@@ -27,7 +27,6 @@ function readSwcFile(e) {
 */
 
 function parseSwcTxt(e) {
-    alert(e.value)
     const swcTxt = e.value
     const swc = sharkViewer.swcParser(swcTxt);
     if (Object.keys(swc).length > 0) {

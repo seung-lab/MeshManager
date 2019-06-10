@@ -22,4 +22,4 @@ class skeletonizeForm(FlaskForm):
 
 class skeletonViewerForm(FlaskForm):
     swc_input = HiddenField('swc_input')
-    swc_download = SubmitField("Download_Skeleton_SWC_File")
+    

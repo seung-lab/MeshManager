@@ -1,9 +1,11 @@
 import cloudvolume
 import numpy as np
 import io
+import os
 import json
 import time 
 import requests
+import tempfile
 import pandas as pd
 from scipy import sparse 
 from cachetools import cached, LRUCache, TTLCache
@@ -84,7 +86,9 @@ def skeletonizeMesh(dataset_name, mat_version, seg_id, soma_pt, soma_thresh=1500
 
     tot_skeleton = skeleton.Skeleton(skel_verts, skel_edges)
 
-    filename = "skeleton.swc"
+    if not (os.path.exists(current_app.config['TEMPFILE_DIR'])):
+        os.mkdir(os.path.join(os.path.dirname(current_app.root_path), current_app.config['TEMPFILE_DIR']))
+    filename = os.path.join(current_app.config['TEMPFILE_DIR'], "{}_{}_{}.swc".format(seg_id, dataset_name, mat_version))
     tot_skeleton.export_to_swc(filename)
 
 

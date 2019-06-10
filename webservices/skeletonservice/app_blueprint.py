@@ -2,6 +2,7 @@ from flask import Blueprint, request, make_response, jsonify, g, send_file, rend
 from flask import current_app, send_file
 import json
 import time
+import os
 import datetime
 from annotationframeworkclient import infoservice
 import cloudvolume
@@ -63,24 +64,32 @@ def dataform():
 
     return render_template('index.html', form=form)
 
+@bps.route('/test')
+def test():
+    return render_template('test2.html', root_path=os.path.dirname(current_app.root_path))
 
 @bps.route('/download/<path:filename>', methods=['GET', 'POST'])
 def download_swc(filename):
+    filename = os.path.join(os.path.dirname(current_app.root_path), current_app.config['TEMPFILE_DIR'], os.path.basename(filename))
     return send_file(filename, as_attachment=True)
 
 @bps.route("/view_skeleton/dataset/<dataset>/version/<version>/root_id/<root_id>/somapt_x/<somapt_x>/somapt_y/<somapt_y>/somapt_z/<somapt_z>",
            methods=['GET', 'POST'])
 def view_skeleton(dataset, version, root_id, somapt_x, somapt_y, somapt_z):
-    dl = AnalysisDataLink(dataset_name=dataset,
-                        sqlalchemy_database_uri=current_app.config['SQLALCHEMY_DATABASE_URI'],
-                        materialization_version=int(version),
-                        verbose=False)
-    
-    if somapt_x == -1 or somapt_y == -1 or somapt_z == -1:
-        somapt_x, somapt_y, somapt_z = dl.query_cell_types('soma_valence').query('pt_root_id == @root_id').item()
+    fil = "{}_{}_{}.swc".format(root_id, dataset, version)
+    filename = os.path.join(os.path.dirname(current_app.root_path), current_app.config['TEMPFILE_DIR'], fil)
+    if not(os.path.exists(filename)):
+        dl = AnalysisDataLink(dataset_name=dataset,
+                            sqlalchemy_database_uri=current_app.config['SQLALCHEMY_DATABASE_URI'],
+                            materialization_version=int(version),
+                            verbose=False)
+        
+        if somapt_x == -1 or somapt_y == -1 or somapt_z == -1:
+            somapt_x, somapt_y, somapt_z = dl.query_cell_types('soma_valence').query('pt_root_id == @root_id').item()
 
-    swc_filename = skeletonizeMesh(dataset, int(version), int(root_id), [int(float(somapt_x)), int(float(somapt_y)), int(float(somapt_z))])
-
+        swc_filename = skeletonizeMesh(dataset, int(version), int(root_id), [int(float(somapt_x)), int(float(somapt_y)), int(float(somapt_z))])
+    else:
+        swc_filename = filename
     #swc_filename = "skeleton.swc"
 
     f = open(swc_filename, 'r')
@@ -89,11 +98,8 @@ def view_skeleton(dataset, version, root_id, somapt_x, somapt_y, somapt_z):
     form = skeletonViewerForm()
     form.swc_input.data = swcTxt
 
-    if request.method == 'POST':
-        result = request.form
-        return redirect(url_for('skeletonservice.download', filename=result['swc_input']))
     
-    return render_template('skeleton_viewer.html', form=form)
+    return render_template('skeleton_viewer.html', form=form, filename=os.path.basename(swc_filename))
 
 
 @bps.route('/skeletonize', methods=['GET', 'POST'])

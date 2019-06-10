@@ -21,6 +21,8 @@ class BaseConfig(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = "MYSUPERSECRETTESTINGKEY"
 
+    TEMPFILE_DIR = "skeletons"
+
 
 def configure_app(app):
 
