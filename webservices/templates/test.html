@@ -1,0 +1,41 @@
+<html>
+  <head>
+
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"
+      integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+      crossorigin="anonymous">
+    </script>
+
+    <script>
+      $(document).ready(function() {
+        $('#foodkind').change(function() {
+
+          var foodkind = $('#foodkind').val();
+
+          // Make Ajax Request and expect JSON-encoded data
+          $.getJSON(
+            '/get_food' + '/' + foodkind,
+            function(data) {
+
+              // Remove old options
+              $('#food').find('option').remove();                                
+
+              // Add new items
+              $.each(data, function(key, val) {
+                var option_item = '<option value="' + val + '">' + val + '</option>'
+                $('#food').append(option_item);
+              });
+            }
+          );
+        });
+      });
+    </script>
+  </head>
+
+  <body>
+    <form>
+      {{ form.foodkind() }}
+      {{ form.food() }}
+    </form>
+  </body>
+</html>

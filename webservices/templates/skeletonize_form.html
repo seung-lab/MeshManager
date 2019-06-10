@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Datasets</title>
+</head>
+<body>
+    <form method="POST">
+    {{ form.csrf_token }}
+    Dataset: &nbsp;&nbsp; {{ form.dataset }}
+    <br>
+    {% for error in form.dataset.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+    {% endfor %}
+    <br><br>
+    Version: &nbsp;&nbsp; {{ form.version }}
+    <br>
+    {% for error in form.version.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+    {% endfor %}
+    <br><br>
+    Root ID: &nbsp;&nbsp; {{ form.root_id }}
+    <br>
+    {% for error in form.root_id.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+    {% endfor %}
+    <br><br>
+    Do you have a soma point?: &nbsp;&nbsp; 
+    {% for subfield in form.want_soma_pt %}
+        
+        &nbsp;{{ subfield(onchange="yesnocheck()") }} {{ subfield.label }}
+    {% endfor %}
+    <div id="ifYes", style="display:none;margin-top:3%;">
+    Soma pt: X: &nbsp;&nbsp; {{ form.somapt_x }} &nbsp;&nbsp; Y: &nbsp;&nbsp; {{ form.somapt_y }} &nbsp;&nbsp; Z: &nbsp;&nbsp; {{ form.somapt_z }}
+    </div>
+    <br><br>
+    <p>{{ form.submit() }}</p>
+    </form>
+    <script type="text/javascript">
+        var dataset_select = document.getElementById("dataset");
+        var version_select = document.getElementById("version");
+        dataset_select.onchange = function()  {
+            dataset_name = dataset_select.value;
+            fetch('/skeletonservice/version/' + dataset_name).then(function(response) {
+                response.json().then(function(data) {
+                    var optionHTML = '';
+                    for (var ver of data.versions) {
+                        optionHTML += '<option value="' + ver.id + '">' + ver.name + '</option>';
+                    }
+                    version_select.innerHTML = optionHTML;
+                })
+            });
+        }
+        
+        function yesnocheck() {
+            if (document.getElementById('want_soma_pt-0').checked) {
+                document.getElementById('ifYes').style.display = 'block'
+            } else {
+                document.getElementById('ifYes').style.display = 'none'
+            }
+        }
+    </script>
+</body>
+</html>

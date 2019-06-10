@@ -1,5 +1,10 @@
 Flask
 flask_cors
-annotationframeworkclient
-meshparty
+flask_sqlalchemy
+flask_admin
+flask_wtf
 shapely
+git+https://github.com/seung-lab/cloud-volume.git@graphene#egg=cloud-volume
+git+https://github.com/seung-lab/AnnotationFrameworkClient.git@chunkedgraph_merge_endpoints#egg=annotationframeworkclient
+emannotationschemas>=1.1.3
+analysisdatalink

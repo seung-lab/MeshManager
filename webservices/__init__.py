@@ -1,7 +1,10 @@
 from flask import Flask
 from flask_cors import CORS
 
-from . import config
+
+from .config import configure_app
+from .database import db
+from .admin import setup_admin
 
 from webservices.meshmanager.app_blueprint import bp
 from webservices.skeletonservice.app_blueprint import bps
@@ -24,10 +27,18 @@ def create_app(test_config=None):
     app.json_encoder = NumpyEncoder
     CORS(app)
 
-    configure_app(app)
+    #configure_app(app)
 
     if test_config is not None:
         app.config.update(test_config)
+    else:
+        app = configure_app(app)
+
+    db.init_app(app)
+
+    with app.app_context():
+        db.create_all()
+        admin = setup_admin(app, db)
 
     app.register_blueprint(bp)
     app.register_blueprint(bps)
@@ -35,17 +46,5 @@ def create_app(test_config=None):
 
     return app
 
-
-def configure_app(app):
-
-    # Load logging scheme from config.py
-    app.config.from_object(config.BaseConfig)
-
-    # Configure logging
-    # handler = logging.FileHandler(app.config['LOGGING_LOCATION'])
-    # handler.setLevel(app.config['LOGGING_LEVEL'])
-    # formatter = logging.Formatter(app.config['LOGGING_FORMAT'])
-    # handler.setFormatter(formatter)
-    # app.logger.addHandler(handler)
 
 
