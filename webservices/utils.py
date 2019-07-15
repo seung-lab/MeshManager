@@ -22,7 +22,7 @@ from annotationframeworkclient import infoservice
 from cloudvolume.storage import SimpleStorage
 from emannotationschemas import get_types, get_schema
 from emannotationschemas.models import AnalysisTable, AnalysisVersion
-from meshparty import trimesh_io, trimesh_vtk, skeletonize, skeleton 
+from meshparty import trimesh_io, trimesh_vtk, skeletonize, skeleton, skeleton_io
 from annotationframeworkclient.infoservice import InfoServiceClient
 from analysisdatalink.datalink_base import get_materialization_versions
 
@@ -60,7 +60,9 @@ def skeletonizeMesh(dataset_name, mat_version, seg_id, soma_pt, soma_thresh=1500
     info_client = InfoServiceClient(current_app.config['INFOSERVICE_URL'])
     ds_info = info_client.get_dataset_info(dataset_name)
 
-    soma_pt = np.array(soma_pt)*[4, 4, 40]
+    soma_pt1 = None
+    if soma_pt is not None:
+        soma_pt1 = np.array(soma_pt)*[4, 4, 40]
 
     mm = trimesh_io.MeshMeta(cv_path = ds_info['graphene_source'],
                              map_gs_to_https=True,
@@ -68,9 +70,7 @@ def skeletonizeMesh(dataset_name, mat_version, seg_id, soma_pt, soma_thresh=1500
                              disk_cache_path='meshes') # disk_cache_path needs to be update appropriately
 
     cell_mesh = mm.mesh(seg_id = seg_id, 
-                        remove_duplicate_vertices=False,
-                        merge_large_components=False,
-                        masked_mesh=True)
+                        merge_large_components=False)
 
     cell_mesh.add_link_edges(seg_id, dataset_name)
 
@@ -78,19 +78,29 @@ def skeletonizeMesh(dataset_name, mat_version, seg_id, soma_pt, soma_thresh=1500
     uniq_labels, label_counts = np.unique(new_labels, return_counts=True)
     new_mesh_filt = cell_mesh.apply_mask(new_labels==uniq_labels[np.argmax(label_counts)])
 
-    skel_verts, skel_edges, smooth_verts, skel_map = skeletonize.skeletonize_mesh(new_mesh_filt,
-                                                                        soma_pt=soma_pt,
-                                                                        soma_thresh=soma_thresh,
-                                                                        invalidation_d=invalidation_d,
-                                                                        merge_components_at_tips=False)
+    #skel_verts, skel_edges, smooth_verts, skel_map = skeletonize.skeletonize_mesh(new_mesh_filt,
+    #                                                                    soma_pt=soma_pt1,
+    #                                                                    soma_thresh=soma_thresh,
+    #                                                                    invalidation_d=invalidation_d,
+    #                                                                    merge_components_at_tips=False)
 
-    tot_skeleton = skeleton.Skeleton(skel_verts, skel_edges)
+    #tot_skeleton = skeleton.Skeleton(skel_verts, skel_edges)
+
+    tot_skeleton = skeletonize.skeletonize_mesh(new_mesh_filt,
+                                                soma_pt=soma_pt1)
 
     if not (os.path.exists(current_app.config['TEMPFILE_DIR'])):
         os.mkdir(os.path.join(os.path.dirname(current_app.root_path), current_app.config['TEMPFILE_DIR']))
-    filename = os.path.join(current_app.config['TEMPFILE_DIR'], "{}_{}_{}.swc".format(seg_id, dataset_name, mat_version))
-    tot_skeleton.export_to_swc(filename)
+    
+    if soma_pt is None:
+        soma_pt = [-1, -1, -1]
+    filen = "{}_{}_{}.swc".format(seg_id, dataset_name, mat_version, soma_pt[0], soma_pt[1], soma_pt[2])
+    swc_filename = os.path.join(current_app.config['TEMPFILE_DIR'], filen)
+    tot_skeleton.export_to_swc(swc_filename)
 
+    fileh5 = "{}_{}_{}.h5".format(seg_id, dataset_name, mat_version, soma_pt[0], soma_pt[1], soma_pt[2])
+    h5_filename = os.path.join(current_app.config['TEMPFILE_DIR'], fileh5)
+    skeleton_io.write_skeleton_h5(tot_skeleton, h5_filename, overwrite=True)
 
-    return filename
+    return swc_filename, h5_filename
 

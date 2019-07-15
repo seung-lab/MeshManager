@@ -10,6 +10,7 @@ import numpy as np
 from meshparty import trimesh_io
 from cloudvolume.storage import SimpleStorage
 from cachetools import cached, LRUCache, TTLCache
+import vtk
 import io
 try:
     from StringIO import StringIO
@@ -39,12 +40,14 @@ def index():
     #return "Skeleton Web Server - version " + __version__
     return render_template('index.html')
 
+
 @bps.route('/datasets')
 def dataset_list():
     datasets, versions = get_datasets()
     return render_template('datasets.html',
                            datasets=datasets,
                            version=__version__)
+
 
 @bps.route('/form', methods=['GET', 'POST'])
 def dataform():
@@ -64,34 +67,52 @@ def dataform():
 
     return render_template('index.html', form=form)
 
-@bps.route('/test')
-def test():
-    return render_template('test2.html', root_path=os.path.dirname(current_app.root_path))
 
-@bps.route('/download/<path:filename>', methods=['GET', 'POST'])
-def download_swc(filename):
-    filename = os.path.join(os.path.dirname(current_app.root_path), current_app.config['TEMPFILE_DIR'], os.path.basename(filename))
+@bps.route('/download/<path:swc_filename>', methods=['GET', 'POST'])
+def download_swc(swc_filename):
+    filename = os.path.join(os.path.dirname(current_app.root_path), current_app.config['TEMPFILE_DIR'], os.path.basename(swc_filename))
     return send_file(filename, as_attachment=True)
+
+@bps.route('/download/<path:h5_filename>', methods=['GET', 'POST'])
+def download_h5(h5_filename):
+    filename = os.path.join(os.path.dirname(current_app.root_path), current_app.config['TEMPFILE_DIR'], os.path.basename(h5_filename))
+    return send_file(h5_filename, as_attachment=True)
+
 
 @bps.route("/view_skeleton/dataset/<dataset>/version/<version>/root_id/<root_id>/somapt_x/<somapt_x>/somapt_y/<somapt_y>/somapt_z/<somapt_z>",
            methods=['GET', 'POST'])
 def view_skeleton(dataset, version, root_id, somapt_x, somapt_y, somapt_z):
-    fil = "{}_{}_{}.swc".format(root_id, dataset, version)
+    somapt_x = int(float(somapt_x))
+    somapt_y = int(float(somapt_y))
+    somapt_z = int(float(somapt_z))
+    fil = "{}_{}_{}_{}_{}_{}.swc".format(root_id, dataset, version, somapt_x, somapt_y, somapt_z)
     filename = os.path.join(os.path.dirname(current_app.root_path), current_app.config['TEMPFILE_DIR'], fil)
+    fil = "{}_{}_{}_{}_{}_{}.h5".format(root_id, dataset, version, somapt_x, somapt_y, somapt_z)
+    h5_file = os.path.join(os.path.dirname(current_app.root_path), current_app.config['TEMPFILE_DIR'], fil)
+
+    if os.path.exists(filename) and os.path.exists(h5_file):
+        # get timestamp on the file in minutes
+        file_age = int(time.time() - os.path.getmtime(filename)) / 60
+
+        # if the file_age is greater than some time then delete the file - TODO
+
     if not(os.path.exists(filename)):
         dl = AnalysisDataLink(dataset_name=dataset,
                             sqlalchemy_database_uri=current_app.config['SQLALCHEMY_DATABASE_URI'],
                             materialization_version=int(version),
                             verbose=False)
         
+        somapt = [somapt_x, somapt_y, somapt_z]
         if somapt_x == -1 or somapt_y == -1 or somapt_z == -1:
-            somapt_x, somapt_y, somapt_z = dl.query_cell_types('soma_valence').query('pt_root_id == @root_id').item()
+            somapt = None
+        #    somapt_x, somapt_y, somapt_z = dl.query_cell_types('soma_valence').query('pt_root_id == @root_id').item()
 
-        swc_filename = skeletonizeMesh(dataset, int(version), int(root_id), [int(float(somapt_x)), int(float(somapt_y)), int(float(somapt_z))])
+        swc_filename, h5_filename = skeletonizeMesh(dataset, int(version), int(root_id), somapt)
     else:
         swc_filename = filename
+        h5_filename = h5_file
     #swc_filename = "skeleton.swc"
-
+    print(swc_filename)
     f = open(swc_filename, 'r')
     swcTxt = f.read()
 
@@ -99,7 +120,9 @@ def view_skeleton(dataset, version, root_id, somapt_x, somapt_y, somapt_z):
     form.swc_input.data = swcTxt
 
     
-    return render_template('skeleton_viewer.html', form=form, filename=os.path.basename(swc_filename))
+    return render_template('skeleton_viewer.html', form=form, 
+                            swc_filename=os.path.basename(swc_filename), 
+                            h5_filename=os.path.basename(h5_filename))
 
 
 @bps.route('/skeletonize', methods=['GET', 'POST'])
@@ -137,7 +160,6 @@ def skeletonize_form():
 
 @bps.route('/version/<dataset_name>')
 def dataset_version(dataset_name):
-    
     dversion = get_dataset_versions(dataset_name)
     darray = []
     
@@ -148,3 +170,33 @@ def dataset_version(dataset_name):
         darray.append(dobj)
 
     return jsonify({'versions': darray})
+
+
+@bps.route('/vtk')
+def vtk_example():
+    colors = vtk.vtkNamedColors()
+
+    # Setup four points
+    points = vtk.vtkPoints()
+    points.InsertNextPoint(0.0, 0.0, 0.0)
+    points.InsertNextPoint(1.0, 0.0, 0.0)
+    points.InsertNextPoint(1.0, 1.0, 0.0)
+    points.InsertNextPoint(0.0, 1.0, 0.0)
+
+    # Create the polygon
+    polygon = vtk.vtkPolygon()
+    polygon.GetPointIds().SetNumberOfIds(4)  # make a quad
+    polygon.GetPointIds().SetId(0, 0)
+    polygon.GetPointIds().SetId(1, 1)
+    polygon.GetPointIds().SetId(2, 2)
+    polygon.GetPointIds().SetId(3, 3)
+
+    # Add the polygon to a list of polygons
+    polygons = vtk.vtkCellArray()
+    polygons.InsertNextCell(polygon)
+
+    # Create a PolyData
+    polygonPolyData = vtk.vtkPolyData()
+    polygonPolyData.SetPoints(points)
+    polygonPolyData.SetPolys(polygons)
+    return render_template('test2.html', polydata=polygonPolyData)

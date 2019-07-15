@@ -45,7 +45,9 @@
         </script>
     </head>
     <body id="form_body">
-        <a href={{ url_for('skeletonservice.download_swc', filename=filename) }}>Download SWC file</a>
+        <a href={{ url_for('skeletonservice.download_swc', swc_filename=swc_filename) }}>Download skeleton in swc format</a>
+        &nbsp;&nbsp;&nbsp;
+        <a href={{ url_for('skeletonservice.download_h5', h5_filename=h5_filename) }}>Download skeleton in h5 format</a>
         <form>
             {{ form.swc_input }}
         </form>
