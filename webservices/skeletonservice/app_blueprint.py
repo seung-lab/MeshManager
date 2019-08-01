@@ -132,6 +132,8 @@ def skeletonize_form():
     datasets = [(d,d) for d in data]
     form.dataset.choices = datasets 
 
+    form.version.choices = [(v,v) for v in versions[data[0]]]
+
     if form.validate_on_submit():
         return redirect('.index')
 

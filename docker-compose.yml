@@ -6,11 +6,13 @@ services:
     image: meshmanager
     volumes:
       - .:/app
+      - /allen:/allen
     ports:
       - 8080:8080
       - 5000:5000
       - 5432:5432
       - 4001:4001
+      - 9999:9999
     #extra_hosts:
     #   - "localhost:0.0.0.0"
     #  - "em-131fs:10.128.124.14"

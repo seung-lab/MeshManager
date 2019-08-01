@@ -55,6 +55,55 @@ def get_dataset_versions(dataset_name):
     
     return version.keys()
 
+class skeletonservice(object):
+    def __init__(self, cache_size=400, cv_path=None, disk_cache_path=None, map_gs_to_https=True):
+        """ Manager class to keep skeletons in memory and download them seamlessly """
+
+        self.skeleton_cache = {}
+        self._cache_size = cache_size
+        self._cv_path = cv_path
+        self._cv = None
+        self._map_gs_to_https = map_gs_to_https
+        self._disk_cache_path = disk_cache_path
+
+        if self._disk_cache_path is not None:
+            if not os.path.exists(self._disk_cache_path):
+                os.makedirs(self._disk_cache_path)
+
+    @property
+    def cache_size(self):
+        return self._cache_size
+    
+    @property
+    def cv_path(self):
+        return self._cv_path
+    
+    @property
+    def disk_cache_path(self):
+        return self._disk_cache_path
+
+    @property
+    def cv(self):
+        if self._cv is None and self._cv_path is not None:
+            self._cv = cloudvolume.CloudVolumeFactory(self._cv_path, parallel=10, map_gs_to_https=self._map_gs_to_https)
+
+    def _filename(self, seg_id, dataset_name, mat_version, soma_pt=None):
+        assert self._disk_cache_path is not None
+
+        if soma_pt is None:
+            soma_pt = [-1, -1, -1]
+        return os.path.join(self._disk_cache_path, "{}_{}_{}.h5".format(seg_id, dataset_name, mat_version, soma_pt[0], soma_pt[1], soma_pt[2]))
+
+    def get_skeleton_file(self, seg_id, dataset_name, mat_version, soma_pt=None):
+        h5_filename = self._filename(seg_id, dataset_name, mat_version, soma_pt)
+
+        if os.path.exists(h5_filename):
+            if h5_filename not in self.skeleton_cache:
+                # we have a skeleton file that is not in cache, so recompute it
+                tot_skeleton = skeletonizeMesh(dataset_name, mat_version, seg_id, soma_pt)
+                self.skeleton_cache[h5_filename] = tot_skeleton
+
+
 
 def skeletonizeMesh(dataset_name, mat_version, seg_id, soma_pt, soma_thresh=15000, invalidation_d=12000):
     info_client = InfoServiceClient(current_app.config['INFOSERVICE_URL'])

@@ -16,7 +16,7 @@ class BaseConfig(object):
     INFOSERVICE_URL = "https://www.dynamicannotationframework.com"
     INFOSERVICE_ENDPOINT = "http://info-service/info"
 
-    SQLALCHEMY_DATABASE_URI = "postgresql://analysis_user:connectallthethings@35.196.105.34/postgres"
+    SQLALCHEMY_DATABASE_URI = "postgresql://analysis_user:connectallthethings@104.196.21.136/postgres"
     DATABASE_CONNECT_OPTIONS = {}
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = "MYSUPERSECRETTESTINGKEY"

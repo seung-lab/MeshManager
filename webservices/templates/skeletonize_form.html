@@ -41,6 +41,7 @@
         var version_select = document.getElementById("version");
         dataset_select.onchange = function()  {
             dataset_name = dataset_select.value;
+            alert(dataset_name);
             fetch('/skeletonservice/version/' + dataset_name).then(function(response) {
                 response.json().then(function(data) {
                     var optionHTML = '';
